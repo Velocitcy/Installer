@@ -14,7 +14,6 @@ import (
 	"os"
 	path "path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -137,56 +136,61 @@ func installLatestBuilds() (retErr error) {
 		return
 	}
 
-	downloadUrl := ""
+	// Create parent directories
+	if err := os.MkdirAll(path.Dir(VelocityDirectory), 0755); err != nil {
+		Log.Error("Failed to create directories:", err)
+		retErr = err
+		return
+	}
+
+	distDir := path.Dir(VelocityDirectory)
+
 	for _, ass := range ReleaseData.Assets {
-		if ass.Name == "desktop.asar" {
-			downloadUrl = ass.DownloadURL
-			break
+		lowerName := strings.ToLower(ass.Name)
+
+		// Skip .LEGAL.txt files
+		if strings.HasSuffix(lowerName, ".legal.txt") {
+			continue
+		}
+
+		// Only download: preload, velocityDesktopPreload, patcher, velocityDesktopMain, velocityDesktopRenderer, renderer
+		if strings.Contains(lowerName, "preload") ||
+			strings.Contains(lowerName, "patcher") ||
+			strings.Contains(lowerName, "velocitydesktopMain") ||
+			strings.Contains(lowerName, "velocitydesktoprenderer") ||
+			(strings.Contains(lowerName, "renderer") && !strings.Contains(lowerName, "velocitydesktop")) {
+
+			Log.Debug("Downloading", ass.Name)
+
+			res, err := http.Get(ass.DownloadURL)
+			if err == nil && res.StatusCode >= 300 {
+				err = errors.New(res.Status)
+			}
+			if err != nil {
+				Log.Error("Failed to download "+ass.Name+":", err)
+				retErr = err
+				return
+			}
+
+			filePath := path.Join(distDir, ass.Name)
+			out, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+			if err != nil {
+				Log.Error("Failed to create "+ass.Name+":", err)
+				retErr = err
+				return
+			}
+
+			if _, err = io.Copy(out, res.Body); err != nil {
+				out.Close()
+				Log.Error("Failed to write "+ass.Name+":", err)
+				retErr = err
+				return
+			}
+			out.Close()
+
+			_ = FixOwnership(filePath)
 		}
 	}
-
-	if downloadUrl == "" {
-		retErr = errors.New("did not find desktop.asar download link")
-		Log.Error(retErr)
-		return
-	}
-
-	Log.Debug("Downloading desktop.asar")
-
-	res, err := http.Get(downloadUrl)
-	if err == nil && res.StatusCode >= 300 {
-		err = errors.New(res.Status)
-	}
-	if err != nil {
-		Log.Error("Failed to download desktop.asar:", err)
-		retErr = err
-		return
-	}
-
-	out, err := os.OpenFile(VelocityDirectory, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		Log.Error("Failed to create", VelocityDirectory+":", err)
-		retErr = err
-		return
-	}
-
-	read, err := io.Copy(out, res.Body)
-	if err != nil {
-		Log.Error("Failed to download to", VelocityDirectory+":", err)
-		retErr = err
-		return
-	}
-
-	contentLength := res.Header.Get("Content-Length")
-	expected := strconv.FormatInt(read, 10)
-	if expected != contentLength {
-		err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but only read " + expected)
-		Log.Error(err.Error())
-		retErr = err
-		return
-	}
-
-	_ = FixOwnership(VelocityDirectory)
 
 	InstalledHash = LatestHash
 	return
