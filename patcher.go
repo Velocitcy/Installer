@@ -8,11 +8,12 @@ package main
 
 import (
 	"errors"
-	"github.com/ProtonMail/go-appdir"
 	"os"
 	"os/exec"
 	path "path/filepath"
 	"strings"
+
+	"github.com/ProtonMail/go-appdir"
 )
 
 var BaseDir string
@@ -34,7 +35,7 @@ func init() {
 		Log.Debug("Using VELOCITY_DIRECTORY")
 		VelocityDirectory = dir
 	} else {
-		VelocityDirectory = path.Join(BaseDir, "velocity.asar")
+		VelocityDirectory = path.Join(BaseDir, "dist", "patcher.js")
 	}
 }
 
