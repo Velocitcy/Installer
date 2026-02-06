@@ -11,18 +11,18 @@ env:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-20.04 # hopefully older glibc for better compatibility on systems like debian bullseye
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: "1.20"
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -38,15 +38,13 @@ jobs:
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -tags "static cli" -ldflags "-s -w -X 'velocityinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'velocityinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VelocityInstallerCli-linux
 
       - name: Update executable
-        run: |
-          chmod +x VelocityInstallerCli-linux
+        run: chmod +x VelocityInstallerCli-linux
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VelocityInstaller-linux
-          path: |
-            VelocityInstallerCli-linux
+          path: VelocityInstallerCli-linux
 
 
   build-mac:
@@ -54,19 +52,14 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: "1.20"
 
-      - id: go-cache-paths
-        run: |
-          echo "go_build=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "go_mod=$(go env GOMODCACHE)" >> $GITHUB_ENV
-
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/go-build
@@ -85,8 +78,7 @@ jobs:
         run: CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -v -tags static -ldflags "-s -w -X 'velocityinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'velocityinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VelocityInstaller
 
       - name: Update executable
-        run: |
-          chmod +x VelocityInstaller
+        run: chmod +x VelocityInstaller
 
       - name: Generate MacOS bundle
         run: |
@@ -98,7 +90,7 @@ jobs:
           zip -r VelocityInstaller.MacOS.zip VelocityInstaller.app
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VelocityInstaller-macos
           path: VelocityInstaller.MacOS.zip
@@ -109,14 +101,14 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: "1.20"
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~\AppData\Local\go-build
@@ -159,7 +151,7 @@ jobs:
           CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -v -tags "static cli" -ldflags "-s -w -extldflags=-static -X 'velocityinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'velocityinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VelocityInstallerCli.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VelocityInstaller-windows
           path: |
@@ -173,25 +165,25 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: VelocityInstaller-linux
           path: linux
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: VelocityInstaller-macos
           path: macos
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: VelocityInstaller-windows
           path: windows
 
       - name: Create the release
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5 # v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
