@@ -14,6 +14,7 @@ import (
 	"os"
 	path "path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -73,14 +74,14 @@ func InitGithubDownloader() {
 	GithubDoneChan = make(chan bool, 1)
 
 	IsDevInstall = os.Getenv("VELOCITY_DEV_INSTALL") == "1"
-	Log.Debug("Is Dev Install:", IsDevInstall)
-
+	Log.Debug("Is Dev Install: ", IsDevInstall)
 	if IsDevInstall {
 		GithubDoneChan <- true
 		return
 	}
 
 	go func() {
+		// Make sure UI updates once the request either finished or failed
 		defer func() {
 			GithubDoneChan <- GithubError == nil
 		}()
@@ -95,11 +96,11 @@ func InitGithubDownloader() {
 
 		i := strings.LastIndex(data.Name, " ") + 1
 		LatestHash = data.Name[i:]
-
 		Log.Debug("Finished fetching GitHub Data")
 		Log.Debug("Latest hash is", LatestHash, "Local Install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
 	}()
 
+	// either .asar file or directory with main.js file (in DEV)
 	VelocityFile := VelocityDirectory
 
 	stat, err := os.Stat(VelocityFile)
@@ -107,10 +108,12 @@ func InitGithubDownloader() {
 		return
 	}
 
+	// dev
 	if stat.IsDir() {
 		VelocityFile = path.Join(VelocityFile, "main.js")
 	}
 
+	// Check hash of installed version if exists
 	b, err := os.ReadFile(VelocityFile)
 	if err != nil {
 		return
@@ -123,8 +126,10 @@ func InitGithubDownloader() {
 	if match != nil {
 		InstalledHash = string(match[1])
 		Log.Debug("Existing hash is", InstalledHash)
+
 	} else {
-		Log.Debug("Did not find hash")
+		Log.Debug("Didn't find hash")
+
 	}
 }
 
@@ -136,61 +141,53 @@ func installLatestBuilds() (retErr error) {
 		return
 	}
 
-	// Create parent directories
-	if err := os.MkdirAll(path.Dir(VelocityDirectory), 0755); err != nil {
-		Log.Error("Failed to create directories:", err)
+	downloadUrl := ""
+	for _, ass := range ReleaseData.Assets {
+		if ass.Name == "desktop.asar" {
+			downloadUrl = ass.DownloadURL
+			break
+		}
+	}
+
+	if downloadUrl == "" {
+		retErr = errors.New("Didn't find desktop.asar download link")
+		Log.Error(retErr)
+		return
+	}
+
+	Log.Debug("Downloading desktop.asar")
+
+	res, err := http.Get(downloadUrl)
+	if err == nil && res.StatusCode >= 300 {
+		err = errors.New(res.Status)
+	}
+	if err != nil {
+		Log.Error("Failed to download desktop.asar:", err)
+		retErr = err
+		return
+	}
+	out, err := os.OpenFile(VelocityDirectory, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		Log.Error("Failed to create", VelocityDirectory+":", err)
+		retErr = err
+		return
+	}
+	read, err := io.Copy(out, res.Body)
+	if err != nil {
+		Log.Error("Failed to download to", VelocityDirectory+":", err)
+		retErr = err
+		return
+	}
+	contentLength := res.Header.Get("Content-Length")
+	expected := strconv.FormatInt(read, 10)
+	if expected != contentLength {
+		err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but I only read " + expected)
+		Log.Error(err.Error())
 		retErr = err
 		return
 	}
 
-	distDir := path.Dir(VelocityDirectory)
-
-	for _, ass := range ReleaseData.Assets {
-		lowerName := strings.ToLower(ass.Name)
-
-		// Skip .LEGAL.txt files
-		if strings.HasSuffix(lowerName, ".legal.txt") {
-			continue
-		}
-
-		// Only download: preload, velocityDesktopPreload, patcher, velocityDesktopMain, velocityDesktopRenderer, renderer
-		if strings.Contains(lowerName, "preload") ||
-			strings.Contains(lowerName, "patcher") ||
-			strings.Contains(lowerName, "velocitydesktopMain") ||
-			strings.Contains(lowerName, "velocitydesktoprenderer") ||
-			(strings.Contains(lowerName, "renderer") && !strings.Contains(lowerName, "velocitydesktop")) {
-
-			Log.Debug("Downloading", ass.Name)
-
-			res, err := http.Get(ass.DownloadURL)
-			if err == nil && res.StatusCode >= 300 {
-				err = errors.New(res.Status)
-			}
-			if err != nil {
-				Log.Error("Failed to download "+ass.Name+":", err)
-				retErr = err
-				return
-			}
-
-			filePath := path.Join(distDir, ass.Name)
-			out, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-			if err != nil {
-				Log.Error("Failed to create "+ass.Name+":", err)
-				retErr = err
-				return
-			}
-
-			if _, err = io.Copy(out, res.Body); err != nil {
-				out.Close()
-				Log.Error("Failed to write "+ass.Name+":", err)
-				retErr = err
-				return
-			}
-			out.Close()
-
-			_ = FixOwnership(filePath)
-		}
-	}
+	_ = FixOwnership(VelocityDirectory)
 
 	InstalledHash = LatestHash
 	return

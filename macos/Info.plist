@@ -9,7 +9,7 @@
         <string>icon.icns</string>
 
         <key>CFBundleIdentifier</key>
-        <string>dev.vendicated.velocityinstaller</string>
+        <string>dev.velocitcs.velocityinstaller</string>
 
         <key>NSHighResolutionCapable</key>
         <true/>

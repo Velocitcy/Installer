@@ -7,7 +7,8 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 if grep -q "CHROMEOS_RELEASE_NAME" /etc/lsb-release 2>/dev/null; then
-	echo "ChromeOS is not supported! Use the chrome extension."
+	echo "ChromeOS is not supported!"
+	exit 1
 fi
 
 outfile=$(mktemp --tmpdir="$HOME")
@@ -17,7 +18,7 @@ echo "Downloading Installer..."
 
 set -- "XDG_CONFIG_HOME=$XDG_CONFIG_HOME"
 
-curl -sS https://github.com/Velocitcy/Installer \
+curl -sS https://github.com/Velocitcy/Installer/releases/latest/download/VelocityInstallerCli-Linux \
   --output "$outfile" \
   --location \
   --fail

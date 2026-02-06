@@ -2,8 +2,8 @@
 
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Velocity Installer, a cross platform gui/cli app for installing Velocity
- * Copyright (c) 2025 Velocitcs and Velocity contributors
+ * Vencord Installer, a cross platform gui/cli app for installing Vencord
+ * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
 package main
@@ -12,12 +12,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/manifoldco/promptui"
 	"os"
 	"runtime"
 	"strings"
 	"velocityinstaller/buildinfo"
+
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 )
 
 var discords []any
@@ -63,7 +64,7 @@ func main() {
 
 	if *versionFlag {
 		fmt.Println("Velocity Installer Cli", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
-		fmt.Println("Copyright (C) 2023 Vendicated and Velocity contributors")
+		fmt.Println("Copyright (C) 2023 RoScripter999 and Velocity contributors")
 		fmt.Println("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.")
 		return
 	}

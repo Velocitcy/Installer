@@ -24,18 +24,18 @@ func init() {
 		Log.Debug("Using VELOCITY_USER_DATA_DIR")
 		BaseDir = dir
 	} else if dir = os.Getenv("DISCORD_USER_DATA_DIR"); dir != "" {
-		Log.Debug("Using DISCORD_USER_DATA_DIR/../VELOCITYData")
-		BaseDir = path.Join(dir, "..", "VELOCITYData")
+		Log.Debug("Using DISCORD_USER_DATA_DIR/../VelocityData")
+		BaseDir = path.Join(dir, "..", "VelocityData")
 	} else {
 		Log.Debug("Using UserConfig")
-		BaseDir = appdir.New("VELOCITY").UserConfig()
+		BaseDir = appdir.New("Velocity").UserConfig()
 	}
 
 	if dir := os.Getenv("VELOCITY_DIRECTORY"); dir != "" {
 		Log.Debug("Using VELOCITY_DIRECTORY")
 		VelocityDirectory = dir
 	} else {
-		VelocityDirectory = path.Join(BaseDir, "dist", "patcher.js")
+		VelocityDirectory = path.Join(BaseDir, "velocity.asar")
 	}
 }
 

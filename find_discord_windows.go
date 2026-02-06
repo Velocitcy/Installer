@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Velocity Installer, a cross platform gui/cli app for installing Velocity
- * Copyright (c) 2025 Velocitcs and Velocity contributors
+ * Vencord Installer, a cross platform gui/cli app for installing Vencord
+ * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
 package main
@@ -122,15 +122,12 @@ func FixOwnership(_ string) error {
 func CheckScuffedInstall() bool {
 	username := os.Getenv("USERNAME")
 	programData := os.Getenv("PROGRAMDATA")
-
 	for _, discordName := range windowsNames {
-		p := path.Join(programData, username, discordName)
-		if ExistsFile(p) {
+		if ExistsFile(path.Join(programData, username, discordName)) || ExistsFile(path.Join(programData, username, discordName)) {
 			HandleScuffedInstall()
 			return true
 		}
 	}
-
 	return false
 }
 
